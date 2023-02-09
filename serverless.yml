@@ -1,0 +1,133 @@
+service: dextools-api
+
+# You can pin your service to only deploy with a specific Serverless version
+# Check out our docs for more details
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: nodejs16.x
+  stage: ${opt:stage}
+  region: us-east-1
+  environment:
+    PAIRS_TABLE: pairs-table
+    PGHOST: ${param:PGHOST}
+    PGUSER: ${param:PGUSER}
+    PGDATABASE: ${param:PGDATABASE}
+    PGPASSWORD: ${param:PGPASSWORD}
+    PGPORT: 5432
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:Query
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+      Resource: "*"
+    - Effect: Allow
+      Action:
+        - rds-db:connect
+      Resource: "arn:aws:rds:us-east-1:464402454692:db-proxy:prx-0a9666eaca5f823d1"
+  vpc:
+    securityGroupIds:
+      - sg-09ab66cf4ac3a0877
+    subnetIds:
+      - subnet-07c6af664669043d5
+      - subnet-0cabeab4186479e40
+      - subnet-05b55e68e573cc0a0
+      - subnet-065260dbde04735bf
+      - subnet-0b46c800d499dca2c
+ 
+functions:
+  pairs:
+    handler: handler.getPairsHandler
+    description: returns all the pairs available or specific pair
+    events:
+      - http: 
+          path: /api/pairs
+          method: get
+          cors:
+            origin: '*' # <-- Specify allowed origin
+            headers: '*'
+            allowCredentials: false
+  transaction:
+    handler: handler.getTransactionsHandler
+    description: return transactions for dexscan
+    events:
+      - http: 
+          path: /api/transactions
+          method: get
+          cors:
+            origin: '*' # <-- Specify allowed origin
+            headers: '*' # <-- Specify 
+            allowCredentials: false
+  config:
+    handler: handler.getConfigHandler
+    description: udf config handler
+    events:
+      - http: 
+          path: /config
+          method: get
+          cors:
+            origin: '*' # <-- Specify allowed origin
+            headers: '*'
+            allowCredentials: false
+  symbols:
+    handler: handler.getSymbolsHandler
+    description: udf symbols handler
+    events:
+      - http: 
+          path: /symbols
+          method: get
+          cors:
+            origin: '*' # <-- Specify allowed origin
+            headers: '*'
+            allowCredentials: false
+  search:
+    handler: handler.searchHandler
+    description: udf search handler
+    events:
+      - http: 
+          path: /search
+          method: get
+          cors:
+            origin: '*' # <-- Specify allowed origin
+            headers: '*'
+            allowCredentials: false
+  history:
+    handler: handler.getHistoryHandler
+    description: udf hisotry handler
+    events:
+      - http: 
+          path: /history
+          method: get
+          cors:
+            origin: '*' # <-- Specify allowed origin
+            headers: '*'
+            allowCredentials: false
+  pairsUpdaterHandler:
+    handler: handler.pairsUpdaterHandler
+    timeout: 120
+    events:
+      - schedule:
+          rate: rate(5 minutes)
+
+resources:
+  Resources:
+    cacheTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: pairs-table
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        TimeToLiveSpecification:
+          AttributeName: ttl
+          Enabled: true
+        BillingMode: PAY_PER_REQUEST
+
+plugins:
+ - serverless-offline
