@@ -27,10 +27,10 @@ const getIntervalValue = (interval) => {
   }
 };
 
-const getHourBars = (dex) => `
+const getHourBars = () => `
 SELECT
   *
-FROM ${dex}_hour_bars 
+FROM hour_candles
 WHERE 
   ticker=$1 AND 
   timestamp >= $2 AND 
@@ -38,7 +38,7 @@ WHERE
 ORDER by timestamp;
 `;
 
-const getBarsQuery = (dex, interval) => `
+const getBarsQuery = (interval) => `
 SELECT
   ticker,
   date_trunc('${interval}', timestamp) as timestamp,
@@ -47,7 +47,7 @@ SELECT
   MIN(low) as low,
   (array_agg(close ORDER BY timestamp DESC))[1] as close,
   SUM(volume) as volume
-FROM ${dex}_price 
+FROM candles
 WHERE 
   ticker=$1 AND 
   timestamp >= $2 AND 
@@ -56,7 +56,7 @@ GROUP BY ticker, date_trunc('${interval}', timestamp)
 ORDER by timestamp;
 `;
 
-const getBarsQueryCustom = (dex, interval) => `
+const getBarsQueryCustom = (interval) => `
 SELECT
   ticker,
   date_trunc('hour', timestamp) + (((date_part('minute', timestamp)::INTEGER / ${interval}::INTEGER) * ${interval}::INTEGER) || ' minutes')::INTERVAL as timestamp,
@@ -65,7 +65,7 @@ SELECT
   MIN(low) as low,
   (array_agg(close ORDER BY timestamp DESC))[1] as close,
   SUM(volume) as volume
-FROM ${dex}_price 
+FROM candles
 WHERE 
   ticker=$1 AND 
   timestamp >= $2 AND 
@@ -76,7 +76,7 @@ GROUP BY ticker, date_trunc('hour', timestamp) + (((date_part('minute', timestam
 const getHistory = async (queryParams, signer) => {
   const pgClient = await getPGClient(signer, 5);
   const { symbol, from, to, resolution, countback } = queryParams;
-  const { ticker, group } = getSymbol(symbol);
+  const { ticker } = getSymbol(symbol);
   const interval = getInterval(resolution);
   const plusObj = {};
   plusObj[interval] = 1;
@@ -96,20 +96,20 @@ const getHistory = async (queryParams, signer) => {
   const intervalValue = getIntervalValue(resolution);
   let bars;
   if (resolution === "60") {
-    bars = await pgClient.query(getHourBars(group.toLowerCase()), [
+    bars = await pgClient.query(getHourBars(), [
       ticker,
       queryFrom,
       toDate.toJSDate(),
     ]);
   } else if (intervalValue === 1) {
-    bars = await pgClient.query(getBarsQuery(group.toLowerCase(), interval), [
+    bars = await pgClient.query(getBarsQuery(interval), [
       ticker,
       queryFrom,
       toDate.toJSDate(),
     ]);
   } else {
     bars = await pgClient.query(
-      getBarsQueryCustom(group.toLowerCase(), intervalValue),
+      getBarsQueryCustom(intervalValue),
       [ticker, queryFrom, toDate.toJSDate()]
     );
   }

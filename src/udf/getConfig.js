@@ -15,7 +15,6 @@ const getConfig = () => {
     ],
     exchanges: [
       { value: "KADDEX", name: "Kaddex", description: "" },
-      { value: "KDSWAP", name: "KDSwap", description: "" },
     ],
   };
 };

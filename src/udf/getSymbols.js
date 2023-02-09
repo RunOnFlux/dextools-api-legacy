@@ -1,5 +1,5 @@
 const dotenv = require("dotenv");
-const { getSymbol, getPGClient } = require("../helper");
+const { getSymbol, getPGClient, getAllPairs } = require("../helper");
 const { supported_resolutions } = require("../helper");
 dotenv.config();;
 
@@ -13,26 +13,17 @@ const getSymbols = async (queryParams, signer) => {
     };
   }
   const symbolInfo = getSymbol(symbol);
-  const { ticker, base, group } = symbolInfo;
-  const closeQuery =
-    base === "USD"
-      ? `SELECT close FROM ${group.toLowerCase()}_price WHERE ticker=$1 ORDER BY timestamp DESC LIMIT 1`
-      : `SELECT close * price AS close FROM ${group.toLowerCase()}_price k INNER JOIN kda_price p ON k.timestamp=p.timestamp WHERE ticker=$1 ORDER BY timestamp DESC LIMIT 1`;
-  const [tokensResp, currentPrice] = await Promise.all([
-    client.query(
-      "SELECT name, ticker, address FROM token_info t INNER JOIN dex_info d ON t.address = d.token_address WHERE dex = $1 AND t.ticker = $2",
-      [group.toLowerCase(), ticker]
-    ),
-    client.query(closeQuery, [ticker]),
-  ]);
-
-  if (tokensResp.rowCount === 0) {
+  const { ticker, group } = symbolInfo;
+  const closeQuery = `SELECT close FROM candles WHERE ticker=$1 ORDER BY timestamp DESC LIMIT 1` 
+  const currentPrice = await client.query(closeQuery, [ticker])
+  const allPairs = await getAllPairs();
+  if (!(ticker in allPairs)) {
     return {
       statusCode: 200,
       body: JSON.stringify({}),
     };
   }
-  const token = tokensResp.rows[0];
+  const pairs = allPairs[ticker];
   const { close } = currentPrice.rows[0];
   const numZeros = -Math.floor(Math.log10(parseFloat(close)) + 1) + 4;
   const pricescale = 10 ** numZeros > 1000 ? 10 ** numZeros : 1000;
@@ -40,8 +31,8 @@ const getSymbols = async (queryParams, signer) => {
     statusCode: 200,
     body: JSON.stringify({
       symbol,
-      description: token.name,
-      ticker: symbol,
+      description: pairs.token0.name,
+      ticker: pairs.token0.name,
       pricescale,
       type: "crypto",
       "has-no-volume": false,
