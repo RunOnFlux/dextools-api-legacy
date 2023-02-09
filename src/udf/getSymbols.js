@@ -32,7 +32,7 @@ const getSymbols = async (queryParams, signer) => {
     body: JSON.stringify({
       symbol,
       description: pairs.token0.name,
-      ticker: pairs.token0.name,
+      ticker: symbol,
       pricescale,
       type: "crypto",
       "has-no-volume": false,
