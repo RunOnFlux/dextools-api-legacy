@@ -11,7 +11,7 @@ const getAllPairs = async () => {
   const item = {
     TableName: CACHE_TABLE,
     Key: {
-      id: "ALL_PAIRS",
+      id: "PAIRS",
     },
   };
 
