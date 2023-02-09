@@ -9,6 +9,7 @@ provider:
   runtime: nodejs16.x
   region: us-east-1
   environment:
+    TOKENS_TABLE: tokens-table
     PAIRS_TABLE: pairs-table
     PGHOST: ${param:PGHOST}
     PGUSER: ${param:PGUSER}
