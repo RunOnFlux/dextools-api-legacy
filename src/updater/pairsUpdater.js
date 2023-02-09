@@ -81,7 +81,7 @@ const getTokens = async () => {
   return Object.keys(tokens).map((k) => tokens[k]);
 };
 
-const getAllTokenExtraInfo = async (dex, pgClient) => {
+const getAllTokenExtraInfo = async (pgClient) => {
   console.log("getting HL for tokens");
   const getHLR = await pgClient.query(`SELECT * FROM hl_view`);
   console.log("got HL for tokens");
