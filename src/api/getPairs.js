@@ -1,7 +1,5 @@
 const { getAllPairs, getTickerFromID } = require("../helper");
 
-const DEXES = ["kaddex", "kdswap"];
-
 const getSortKey = (sort) => {
   switch (sort) {
     case "hour":
@@ -30,34 +28,27 @@ const getPairs = async (queryParams = {}) => {
   };
 
   if (!id && !exchange) {
-    const dexPairs = [allPairs.kaddex, allPairs.kdswap]
-      .flat()
-      .map((obj) => Object.values(obj));
-
+    const pairs = Object.values(allPairs)
+      .map((pair) => pair)
+      .sort(
+        (tokenA, tokenB) => tokenB[getSortKey(sort)] - tokenA[getSortKey(sort)]
+      );
     result.statusCode = 200;
-    result.body = JSON.stringify(
-      dexPairs
-        .flat()
-        .sort(
-          (tokenA, tokenB) =>
-            tokenB[getSortKey(sort)] - tokenA[getSortKey(sort)]
-        )
-    );
+    result.body = JSON.stringify(pairs);
     return result;
   }
 
   if (id && exchange) {
     const dex = exchange.toLowerCase();
-    if (DEXES.indexOf(dex) === -1) {
+    if (dex !== "kaddex") {
       result.body = JSON.stringify({
-        error: `exchange: ${dex} not known (kaddex, kdswap only)`,
+        error: `exchange: ${dex} not known (kaddex only)`,
       });
       result.statusCode = 400;
       return result;
     }
     const ticker = getTickerFromID(id);
-    const pair =
-      allPairs[dex] && allPairs[dex][ticker] ? allPairs[dex][ticker] : null;
+    const pair = allPairs[ticker] ? allPairs[ticker] : null;
 
     result.body = JSON.stringify(
       pair ? pair : { error: `dex: ${dex} ticker: ${ticker} does not exist` }

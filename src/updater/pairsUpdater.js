@@ -181,25 +181,20 @@ const pairsUpdater = async (signer) => {
   const pgClient = await getPGClient(signer, 3);
   try {
     const pairs = await buildPairs(pgClient);
-    console.log(pairs)
-    // const item = {
-    //   TableName: PAIRS_TABLE,
-    //   Item: {
-    //     id: "ALL_PAIRS",
-    //     cachedValue: stringify(pairs, { fullPrecisionFloats: true }),
-    //   },
-    // };
-    // console.log("UPLOADING");
-    // await ddbClient.send(new PutCommand(item));
+    const item = {
+      TableName: PAIRS_TABLE,
+      Item: {
+        id: "PAIRS",
+        cachedValue: stringify(pairs, { fullPrecisionFloats: true }),
+      },
+    };
+    console.log("UPLOADING");
+    await ddbClient.send(new PutCommand(item));
   } catch (e) {
     console.log(`ERROR WHILE UPDATING ${e.message}`);
   }
 
   return null;
 };
-
-(async () => {
-  await pairsUpdater();
-})()
 
 module.exports = pairsUpdater;
