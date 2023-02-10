@@ -147,6 +147,8 @@ const getPair = (ticker, close, volume, intervalsMap, extraInfo) => {
     totalSupply: extraInfo.totalSupply,
     circulatingSupply: extraInfo.circulatingSupply,
     socials: extraInfo.socials,
+    allTimeHigh: extraInfo.allTimeHigh,
+    allTimeLow: extraInfo.allTimeLow,
   };
 };
 
@@ -178,7 +180,7 @@ const buildPairs = async (pgClient) => {
 
 const pairsUpdater = async (signer) => {
   console.log("STARTING PAIRS UPDATE");
-  const pgClient = await getPGClient(signer, 3);
+  const pgClient = await getPGClient(signer, 5);
   try {
     const pairs = await buildPairs(pgClient);
     const item = {
