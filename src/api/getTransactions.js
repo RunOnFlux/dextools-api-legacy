@@ -35,8 +35,7 @@ const getTransactions = async (queryParams, signer) => {
     const allPairs = await getAllPairs();
     const actualLimit = limit && limit < 100 ? limit : 100;
     const ticker = getTickerFromID(id);
-    const dex = exchange.toLowerCase();
-    const pair =  allPairs[dex] && allPairs[dex][ticker] ? allPairs[dex][ticker] : null;
+    const pair =   allPairs[ticker] ? allPairs[ticker] : null;
     if (!pair) {
       return {
         statusCode: 400,
@@ -48,13 +47,13 @@ const getTransactions = async (queryParams, signer) => {
     if (!fromDate) {
       transactionsInPage = await pgClient.query(
         `
-        SELECT * FROM ${dex}_transactions WHERE (from_token = $1 OR to_token = $2) AND timestamp < $3 ORDER BY timestamp DESC LIMIT $4`,
+        SELECT * FROM transactions WHERE (from_token = $1 OR to_token = $2) AND timestamp < $3 ORDER BY timestamp DESC LIMIT $4`,
         [address, address, toDate.toJSDate(), actualLimit]
       );
     } else {
       transactionsInPage = await pgClient.query(
         `
-          SELECT * FROM ${dex}_transactions WHERE (from_token = $1 OR to_token = $2) AND timestamp > $3 AND timestamp < $4 ORDER BY timestamp DESC LIMIT $5`,
+          SELECT * FROM transactions WHERE (from_token = $1 OR to_token = $2) AND timestamp > $3 AND timestamp < $4 ORDER BY timestamp DESC LIMIT $5`,
         [address, address, fromDate.toJSDate(), toDate.toJSDate(), actualLimit]
       );
     }
@@ -98,7 +97,7 @@ const getTransactions = async (queryParams, signer) => {
       const token0 = {
         ticker,
         address,
-        img: `https://cdn2.kadefi.money/tokens/${ticker}.png`,
+        img: allPairs[ticker].token0.img,
       };
 
       token0.amount =
@@ -108,7 +107,7 @@ const getTransactions = async (queryParams, signer) => {
       const token1 = {
         ticker: "KDA",
         address: "coin",
-        img: "https://cdn2.kadefi.money/tokens/KDA.png",
+        img: "https://swap.kaddex.com/images/crypto/kda-crypto.svg",
       };
 
       token1.amount =
