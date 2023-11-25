@@ -83,7 +83,7 @@ const getTokens = async () => {
 
 const getAllTokenExtraInfo = async (pgClient) => {
   console.log("getting HL for tokens");
-  const getHLR = await pgClient.query(`SELECT * FROM hl_view`);
+  const getHLR = await pgClient.query(`SELECT * FROM at_price`);
   console.log("got HL for tokens");
   const tokenHL = getHLR.rows.reduce((p, c) => {
     p[c.ticker] = {
@@ -135,7 +135,7 @@ const getPair = (ticker, close, volume, intervalsMap, extraInfo) => {
       img: `https://swap.kaddex.com/images/crypto/kda-crypto.svg`,
     },
     exchange: {
-      name: 'KADDEX',
+      name: "KADDEX",
       img: `https://swap.kaddex.com/images/crypto/kaddex-crypto.svg`,
     },
     pair: `KDA/${ticker}`,
@@ -166,13 +166,7 @@ const buildPairs = async (pgClient) => {
     const { ticker, close } = token;
     const v = volume[ticker];
     const extraInfo = extraInfos[ticker];
-    p[ticker] = getPair(
-      ticker,
-      close,
-      v,
-      intervalsMap,
-      extraInfo
-    );
+    p[ticker] = getPair(ticker, close, v, intervalsMap, extraInfo);
     return p;
   }, {});
   return response;
