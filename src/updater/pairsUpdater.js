@@ -8,7 +8,10 @@ dotenv.config();
 
 const PAIRS_TABLE = process.env.PAIRS_TABLE || false;
 const TOKENS_TABLE = process.env.TOKENS_TABLE || false;
-const ddbClient = new DynamoDBClient({ region: "us-east-1" });
+const ddbClient = new DynamoDBClient({
+  region: "us-east-1",
+  endpoint: process.env.AWS_ENDPOINT || undefined,
+});
 
 const getTokenResp = async (pgClient) => {
   console.log("getting tokens and closes");

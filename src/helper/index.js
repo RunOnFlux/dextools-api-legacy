@@ -2,7 +2,10 @@ const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
 const { GetCommand } = require("@aws-sdk/lib-dynamodb");
 const { parse } = require("zipson/lib");
 const CACHE_TABLE = process.env.PAIRS_TABLE || false;
-const ddbClient = new DynamoDBClient({ region: "us-east-1" });
+const ddbClient = new DynamoDBClient({
+  region: "us-east-1",
+  endpoint: process.env.AWS_ENDPOINT || undefined,
+});
 const { Pool } = require("pg");
 
 const getTickerFromID = (id) => id.substring(id.indexOf(":") + 1);
@@ -67,17 +70,17 @@ const buildResponse = (statusCode, body) => {
 };
 
 const getPGClient = async (signer, size = 2) => {
-  const pgClient = new Pool({ 
+  const pgClient = new Pool({
     host: process.env.PGHOST,
     port: 5432,
     user: process.env.PGUSER,
     password: process.env.PGPASSWORD,
     database: process.env.PGDATABASE,
-    max: size
+    max: size,
   });
   await pgClient.connect();
   return pgClient;
-}
+};
 
 module.exports = {
   getTickerFromID,
