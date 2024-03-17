@@ -21,6 +21,14 @@ const getAccountBalanceChartHandler = async (event) => {
   return addHeader(result);
 };
 
+const getAccountTransactionHistory = require("./src/api/getAccountTransactionHistory");
+const getAccountTransactionHistoryHandler = async (event) => {
+  const { queryStringParameters } = event;
+  const queryParams = queryStringParameters ? queryStringParameters : {};
+  const result = await getAccountTransactionHistory(queryParams);
+  return addHeader(result);
+};
+
 const getPairs = require("./src/api/getPairs");
 const getPairsHandler = async (event) => {
   const { queryStringParameters } = event;
@@ -73,6 +81,7 @@ module.exports = {
   getSymbolsHandler,
   searchHandler,
   getHistoryHandler,
+  getAccountTransactionHistoryHandler,
 };
 
 // module.exports.hello = async (event) => {

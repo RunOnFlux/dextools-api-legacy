@@ -82,6 +82,19 @@ const getPGClient = async (signer, size = 2) => {
   return pgClient;
 };
 
+const getChainwebPGClient = async (signer, size = 2) => {
+  const pgClient = new Pool({
+    host: process.env.CHAINWEB_DB_HOST,
+    database: process.env.CHAINWEB_DB_NAME,
+    user: process.env.CHAINWEB_DB_USER,
+    password: process.env.CHAINWEB_DB_PASSWORD,
+    // ssl: false,
+    max: size,
+  });
+  await pgClient.connect();
+  return pgClient;
+};
+
 module.exports = {
   getTickerFromID,
   getAllPairs,
@@ -90,4 +103,5 @@ module.exports = {
   buildResponse,
   addHeader,
   getPGClient,
+  getChainwebPGClient,
 };
