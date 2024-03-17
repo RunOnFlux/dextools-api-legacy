@@ -13,7 +13,7 @@ const pairsUpdaterHandler = async (event) => {
   await pairsUpdater(signer);
 };
 
-const getAccountBalanceChart = require("./src/api/getAccountBalaceChart");
+const getAccountBalanceChart = require("./src/api/getAccountBalanceChart");
 const getAccountBalanceChartHandler = async (event) => {
   const { queryStringParameters } = event;
   const queryParams = queryStringParameters ? queryStringParameters : {};
