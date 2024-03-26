@@ -21,7 +21,7 @@ const getAccountTransactionHistory = async (queryParams, signer) => {
     const query = `
     SELECT 
       ts.requestkey, ts.amount, ts.chainid, ts.from_acct, ts.to_acct, ts.modulename, 
-      t.code, t.badresult as error, t.code , t.creationtime, t.gas, t.gaslimit, t.gasprice,
+      t.code, t.badresult as error, t.code , t.creationtime, t.gas, t.gaslimit, t.gasprice, t.continuation,
       CASE 
         WHEN t.badresult IS NULL THEN 'SUCCESS'
         ELSE 'FAIL'
@@ -32,8 +32,8 @@ const getAccountTransactionHistory = async (queryParams, signer) => {
       END AS direction
     FROM transfers ts 
     LEFT JOIN transactions t ON t.requestkey = ts.requestkey
-    WHERE ts.from_acct = $1
-    OR ts.to_acct = $1 
+    WHERE (ts.from_acct = $1
+    OR ts.to_acct = $1) AND t.pactid IS NULL
     ORDER BY ts.height DESC
     LIMIT $2 OFFSET $3`;
     const transactions = await pgClientChainweb.query(query, [
@@ -55,9 +55,15 @@ const getAccountTransactionHistory = async (queryParams, signer) => {
           } else if (tx?.code?.includes("swap-exact-in")) {
             transactionType = "SWAP";
           }
+          const targetChainId =
+            tx.continuation?.step === 0
+              ? tx.continuation?.yield?.provenance?.targetChainId
+              : null;
+          delete tx?.continuation;
           return {
             ...tx,
             transactionType,
+            targetChainId,
             error: tx?.error?.message ?? null,
           };
         })
