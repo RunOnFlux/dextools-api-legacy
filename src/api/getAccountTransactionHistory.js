@@ -9,7 +9,15 @@ const getAccountTransactionHistory = async (queryParams, signer) => {
   const pgClientChainweb = await getChainwebPGClient(signer, 2);
 
   try {
-    const { account, limit = 100, skip = 0 } = queryParams;
+    const {
+      account,
+      limit = 100,
+      skip = 0,
+      modulename = null,
+      status = null,
+      requestkey = null,
+      direction = null,
+    } = queryParams;
     if (!account) {
       return {
         statusCode: 400,
@@ -18,10 +26,26 @@ const getAccountTransactionHistory = async (queryParams, signer) => {
         }),
       };
     }
-    const query = `
+    if (status && status !== "SUCCESS" && status !== "FAIL") {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({
+          error: "status can only be SUCCESS or FAIL",
+        }),
+      };
+    }
+    if (direction && direction !== "IN" && direction !== "OUT") {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({
+          error: "direction can only be IN or OUT",
+        }),
+      };
+    }
+    let query = `
     SELECT 
       ts.requestkey, ts.amount, ts.chainid, ts.from_acct, ts.to_acct, ts.modulename, 
-      t.code, t.badresult as error, t.code , t.creationtime, t.gas, t.gaslimit, t.gasprice, t.continuation,
+      t.code, t.badresult as error, t.code, t.creationtime, t.gas, t.gaslimit, t.gasprice, t.continuation,
       CASE 
         WHEN t.badresult IS NULL THEN 'SUCCESS'
         ELSE 'FAIL'
@@ -32,15 +56,38 @@ const getAccountTransactionHistory = async (queryParams, signer) => {
       END AS direction
     FROM transfers ts 
     LEFT JOIN transactions t ON t.requestkey = ts.requestkey
-    WHERE (ts.from_acct = $1
-    OR ts.to_acct = $1) AND t.pactid IS NULL
-    ORDER BY ts.height DESC
-    LIMIT $2 OFFSET $3`;
-    const transactions = await pgClientChainweb.query(query, [
-      account,
-      limit < 100 ? limit : 100,
-      skip,
-    ]);
+    WHERE t.pactid IS NULL`;
+    const pgParams = [];
+    if (account) {
+      pgParams.push(account);
+      query += ` AND (ts.from_acct = $${pgParams.length} OR ts.to_acct = $${pgParams.length})`;
+    }
+    if (modulename) {
+      pgParams.push(modulename);
+      query += ` AND ts.modulename = $${pgParams.length}`;
+    }
+    if (requestkey) {
+      pgParams.push(requestkey);
+      query += ` AND ts.requestkey = $${pgParams.length}`;
+    }
+    if (direction === "IN") {
+      query += " AND ts.to_acct = $1";
+    }
+    if (direction === "OUT") {
+      query += " AND ts.from_acct = $1";
+    }
+    if (status === "SUCCESS") {
+      query += " AND t.badresult IS NULL";
+    } else if (status === "FAIL") {
+      query += " AND t.badresult IS NOT NULL";
+    }
+
+    pgParams.push(limit < 100 ? limit : 100, skip);
+    query += ` ORDER BY ts.height DESC LIMIT $${pgParams.length - 1} OFFSET $${
+      pgParams.length
+    }`;
+
+    const transactions = await pgClientChainweb.query(query, pgParams);
     return {
       statusCode: 200,
       body: JSON.stringify(
