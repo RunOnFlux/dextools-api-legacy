@@ -15,9 +15,10 @@ const pairsUpdaterHandler = async (event) => {
 
 const getAccountBalanceChart = require("./src/api/getAccountBalanceChart");
 const getAccountBalanceChartHandler = async (event) => {
-  const { queryStringParameters } = event;
+  const { queryStringParameters, headers } = event;
   const queryParams = queryStringParameters ? queryStringParameters : {};
-  const result = await getAccountBalanceChart(queryParams);
+  const xSignature = headers["x-signature"] || headers["X-Signature"];
+  const result = await getAccountBalanceChart(queryParams, xSignature);
   return addHeader(result);
 };
 
