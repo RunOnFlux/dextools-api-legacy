@@ -30,6 +30,17 @@ const getAccountTransactionHistoryHandler = async (event) => {
   return addHeader(result);
 };
 
+const getTickerPerformanceSummary = require("./src/api/getTickerPerformanceSummary");
+const getTickerPerformanceSummaryHandler = async (event) => {
+  const { queryStringParameters } = event;
+  const queryParams = queryStringParameters ? queryStringParameters : {};
+  const result = await getTickerPerformanceSummary(
+    queryParams?.interval,
+    signer
+  );
+  return addHeader(result);
+};
+
 const getPairs = require("./src/api/getPairs");
 const getPairsHandler = async (event) => {
   const { queryStringParameters } = event;
@@ -83,6 +94,7 @@ module.exports = {
   searchHandler,
   getHistoryHandler,
   getAccountTransactionHistoryHandler,
+  getTickerPerformanceSummaryHandler,
 };
 
 // module.exports.hello = async (event) => {
