@@ -1,11 +1,23 @@
 "use strict";
 
 const { Signer } = require("@aws-sdk/rds-signer");
+const { Pool } = require("pg");
+const dotenv = require("dotenv");
+dotenv.config();
 
 const signer = new Signer({
   hostname: process.env.PGHOST,
   username: process.env.PGUSER,
   port: 5432,
+});
+
+const pgChainwebClientPool = new Pool({
+  host: process.env.CHAINWEB_DB_HOST,
+  database: process.env.CHAINWEB_DB_NAME,
+  user: process.env.CHAINWEB_DB_USER,
+  password: process.env.CHAINWEB_DB_PASSWORD,
+  idleTimeoutMillis: 10000,
+  max: 80,
 });
 
 const pairsUpdater = require("./src/updater/pairsUpdater");
@@ -23,10 +35,12 @@ const getAccountBalanceChartHandler = async (event) => {
 };
 
 const getAccountTransactionHistory = require("./src/api/getAccountTransactionHistory");
-const getAccountTransactionHistoryHandler = async (event) => {
+const getAccountTransactionHistoryHandler = async (event, context) => {
+  context.callbackWaitsForEmptyEventLoop = false;
   const { queryStringParameters } = event;
+  const client = await pgChainwebClientPool.connect();
   const queryParams = queryStringParameters ? queryStringParameters : {};
-  const result = await getAccountTransactionHistory(queryParams);
+  const result = await getAccountTransactionHistory(queryParams, client);
   return addHeader(result);
 };
 
