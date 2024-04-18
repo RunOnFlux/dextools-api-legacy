@@ -1,11 +1,23 @@
 "use strict";
 
 const { Signer } = require("@aws-sdk/rds-signer");
+const { Pool } = require("pg");
+const dotenv = require("dotenv");
+dotenv.config();
 
 const signer = new Signer({
   hostname: process.env.PGHOST,
   username: process.env.PGUSER,
   port: 5432,
+});
+
+const pgChainwebClientPool = new Pool({
+  host: process.env.CHAINWEB_DB_HOST,
+  database: process.env.CHAINWEB_DB_NAME,
+  user: process.env.CHAINWEB_DB_USER,
+  password: process.env.CHAINWEB_DB_PASSWORD,
+  idleTimeoutMillis: 10000,
+  max: 80,
 });
 
 const pairsUpdater = require("./src/updater/pairsUpdater");
@@ -15,17 +27,31 @@ const pairsUpdaterHandler = async (event) => {
 
 const getAccountBalanceChart = require("./src/api/getAccountBalanceChart");
 const getAccountBalanceChartHandler = async (event) => {
-  const { queryStringParameters } = event;
+  const { queryStringParameters, headers } = event;
   const queryParams = queryStringParameters ? queryStringParameters : {};
-  const result = await getAccountBalanceChart(queryParams);
+  const xSignature = headers["x-signature"] || headers["X-Signature"];
+  const result = await getAccountBalanceChart(queryParams, xSignature);
   return addHeader(result);
 };
 
 const getAccountTransactionHistory = require("./src/api/getAccountTransactionHistory");
-const getAccountTransactionHistoryHandler = async (event) => {
+const getAccountTransactionHistoryHandler = async (event, context) => {
+  context.callbackWaitsForEmptyEventLoop = false;
+  const { queryStringParameters } = event;
+  const client = await pgChainwebClientPool.connect();
+  const queryParams = queryStringParameters ? queryStringParameters : {};
+  const result = await getAccountTransactionHistory(queryParams, client);
+  return addHeader(result);
+};
+
+const getTickerPerformanceSummary = require("./src/api/getTickerPerformanceSummary");
+const getTickerPerformanceSummaryHandler = async (event) => {
   const { queryStringParameters } = event;
   const queryParams = queryStringParameters ? queryStringParameters : {};
-  const result = await getAccountTransactionHistory(queryParams);
+  const result = await getTickerPerformanceSummary(
+    queryParams?.interval,
+    signer
+  );
   return addHeader(result);
 };
 
@@ -82,6 +108,7 @@ module.exports = {
   searchHandler,
   getHistoryHandler,
   getAccountTransactionHistoryHandler,
+  getTickerPerformanceSummaryHandler,
 };
 
 // module.exports.hello = async (event) => {

@@ -2,6 +2,14 @@ const { DynamoDBClient, QueryCommand } = require("@aws-sdk/client-dynamodb");
 const { GetCommand, PutCommand } = require("@aws-sdk/lib-dynamodb");
 const { unmarshall } = require("@aws-sdk/util-dynamodb");
 const { parse } = require("zipson/lib");
+const {
+  hash,
+  hexToBin,
+  verifySig,
+  base64UrlDecodeArr,
+} = require("@kadena/cryptography-utils");
+
+const ADD_ME_MESSAGE = "please-add-me-to-ecko-balance-tracking";
 
 const ddbClient = new DynamoDBClient({
   region: "us-east-1",
@@ -11,7 +19,7 @@ const KADENA_ACCOUNTS_TABLE =
   process.env.KADENA_ACCOUNTS_TABLE || "kadena-accounts";
 const KADENA_ACCOUNTS_BALANCE_TABLE = "kadena-accounts-balance";
 
-const verifyAndAddAccount = async (account) => {
+const verifyAndAddAccount = async (account, xSignature) => {
   try {
     const getResponse = await ddbClient.send(
       new GetCommand({
@@ -21,14 +29,27 @@ const verifyAndAddAccount = async (account) => {
     );
 
     if (!getResponse.Item) {
-      const item = {
-        TableName: KADENA_ACCOUNTS_TABLE,
-        Item: {
-          account,
-        },
-      };
-      await ddbClient.send(new PutCommand(item));
-      // Account added successfully
+      const publicKey = account?.split("k:")[1];
+      if (publicKey?.length !== 64) {
+        throw new Error(`Invalid public key`);
+      }
+      const hashString = hash(ADD_ME_MESSAGE);
+      const isValidSig = verifySig(
+        base64UrlDecodeArr(hashString),
+        hexToBin(xSignature),
+        hexToBin(publicKey)
+      );
+      if (isValidSig) {
+        const item = {
+          TableName: KADENA_ACCOUNTS_TABLE,
+          Item: {
+            account,
+          },
+        };
+        await ddbClient.send(new PutCommand(item));
+      } else {
+        return false;
+      }
     }
     return true;
   } catch (error) {
@@ -37,9 +58,8 @@ const verifyAndAddAccount = async (account) => {
   }
 };
 
-const getAccountBalanceChart = async (queryParams = {}) => {
+const getAccountBalanceChart = async (queryParams = {}, xSignature) => {
   const { account, from, to } = queryParams;
-
   if (!account || !from || !to) {
     return {
       statusCode: 400,
@@ -49,7 +69,7 @@ const getAccountBalanceChart = async (queryParams = {}) => {
     };
   }
 
-  await verifyAndAddAccount(account);
+  await verifyAndAddAccount(account, xSignature);
 
   try {
     const queryCommandInput = {
