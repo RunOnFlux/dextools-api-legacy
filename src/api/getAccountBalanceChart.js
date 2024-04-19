@@ -29,6 +29,9 @@ const verifyAndAddAccount = async (account, xSignature) => {
     );
 
     if (!getResponse.Item) {
+      if (!xSignature) {
+        return false;
+      }
       const publicKey = account?.split("k:")[1];
       if (publicKey?.length !== 64) {
         throw new Error(`Invalid public key`);
