@@ -59,7 +59,7 @@ const verifyAndAddAccount = async (account, xSignature) => {
 };
 
 const getAccountBalanceChart = async (queryParams = {}, xSignature) => {
-  const { account, from, to } = queryParams;
+  const { account, from, to, getFullData } = queryParams;
   if (!account || !from || !to) {
     return {
       statusCode: 400,
@@ -91,7 +91,7 @@ const getAccountBalanceChart = async (queryParams = {}, xSignature) => {
     const items = data.Items.map((item) => unmarshall(item)).map((item) => ({
       date: item.date,
       totalUsdValue: item.totalUsdValue,
-      data: parse(item.balances),
+      data: getFullData ? parse(item.balances) : undefined,
     }));
 
     return {
