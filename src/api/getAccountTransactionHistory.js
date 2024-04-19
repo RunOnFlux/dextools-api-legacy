@@ -1,13 +1,7 @@
-const { DateTime } = require("luxon");
-const { Client } = require("pg");
-const { getChainwebPGClient } = require("../helper");
-
 const dotenv = require("dotenv");
 dotenv.config();
 
-const getAccountTransactionHistory = async (queryParams, signer) => {
-  const pgClientChainweb = await getChainwebPGClient(signer, 2);
-
+const getAccountTransactionHistory = async (queryParams, pgClientChainweb) => {
   try {
     const {
       account,
