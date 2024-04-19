@@ -26,7 +26,7 @@ const getTickerPerformanceSummary = async (interval = "1D", signer) => {
       };
   }
 
-  const query = `
+  const queryNonKDA = `
     SELECT
       ticker,
       MIN(timestamp) as open_time,
@@ -44,13 +44,36 @@ const getTickerPerformanceSummary = async (interval = "1D", signer) => {
       ticker
   `;
 
+  const queryKDA = `
+    SELECT
+      'KDA' as ticker,
+      MIN(timestamp) as open_time,
+      MAX(timestamp) as close_time,
+      (array_agg(price ORDER BY timestamp ASC))[1] as open,
+      (array_agg(price ORDER BY timestamp DESC))[1] as close,
+      MIN(price) as low,
+      MAX(price) as high
+    FROM
+      kda_price
+    WHERE
+      ${intervalQuery}
+  `;
+
   try {
-    const res = await client.query(query);
-    const results =
-      res?.rows?.map((row) => ({
-        ...row,
-        diff: ((row.close - row.open) / row.open) * 100,
-      })) ?? [];
+    const resNonKDA = await client.query(queryNonKDA);
+    const resKDA = await client.query(queryKDA);
+    const results = {
+      tickers: [
+        ...resNonKDA.rows.map((row) => ({
+          ...row,
+          diff: ((row.close - row.open) / row.open) * 100,
+        })),
+        ...resKDA.rows.map((row) => ({
+          ...row,
+          diff: ((row.close - row.open) / row.open) * 100,
+        })),
+      ],
+    };
 
     return {
       statusCode: 200,
