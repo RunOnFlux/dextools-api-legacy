@@ -1,5 +1,13 @@
 const dotenv = require("dotenv");
 dotenv.config();
+const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
+const { ScanCommand } = require("@aws-sdk/lib-dynamodb");
+const { parse } = require("zipson/lib");
+
+const ddbClient = new DynamoDBClient({
+  region: "us-east-1",
+  endpoint: process.env.AWS_ENDPOINT || undefined,
+});
 
 const getAccountTransactionHistory = async (queryParams, pgClientChainweb) => {
   try {
@@ -82,10 +90,25 @@ const getAccountTransactionHistory = async (queryParams, pgClientChainweb) => {
     }`;
 
     const transactions = await pgClientChainweb.query(query, pgParams);
+
+    const storedTokens = await ddbClient.send(
+      new ScanCommand({
+        TableName: process.env.TOKENS_TABLE,
+      })
+    );
+    const tokensData = parse(storedTokens?.Items[0]?.cachedValue);
     return {
       statusCode: 200,
       body: JSON.stringify(
         transactions?.rows.map((tx) => {
+          let ticker = null;
+          if (tx.modulename === "coin") {
+            ticker = "KDA";
+          } else if (tokensData && tokensData[tx.modulename]) {
+            ticker = tokensData[tx.modulename].symbol;
+          } else if (tx.modulename?.split(".").length === 2) {
+            ticker = tx.modulename?.split(".")[1].toUpperCase();
+          }
           let transactionType = "???";
           if (
             tx?.code?.includes("coin.transfer") ||
@@ -102,6 +125,7 @@ const getAccountTransactionHistory = async (queryParams, pgClientChainweb) => {
               : null;
           delete tx?.continuation;
           return {
+            ticker,
             ...tx,
             transactionType,
             targetChainId,

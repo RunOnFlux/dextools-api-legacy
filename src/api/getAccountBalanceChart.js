@@ -57,7 +57,7 @@ const verifyAndAddAccount = async (account, xSignature) => {
     return true;
   } catch (error) {
     console.error("Error verifying and adding account:", error);
-    throw error;
+    return false;
   }
 };
 
@@ -72,7 +72,18 @@ const getAccountBalanceChart = async (queryParams = {}, xSignature) => {
     };
   }
 
-  await verifyAndAddAccount(account, xSignature);
+  const isValidAccountOrSignature = await verifyAndAddAccount(
+    account,
+    xSignature
+  );
+  if (!isValidAccountOrSignature) {
+    return {
+      statusCode: 401,
+      body: JSON.stringify({
+        error: "Invalid signature",
+      }),
+    };
+  }
 
   try {
     const queryCommandInput = {

@@ -38,9 +38,11 @@ const getAccountTransactionHistory = require("./src/api/getAccountTransactionHis
 const getAccountTransactionHistoryHandler = async (event, context) => {
   context.callbackWaitsForEmptyEventLoop = false;
   const { queryStringParameters } = event;
-  const client = await pgChainwebClientPool.connect();
   const queryParams = queryStringParameters ? queryStringParameters : {};
-  const result = await getAccountTransactionHistory(queryParams, client);
+  const result = await getAccountTransactionHistory(
+    queryParams,
+    pgChainwebClientPool
+  );
   return addHeader(result);
 };
 
