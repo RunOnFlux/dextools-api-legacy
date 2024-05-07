@@ -71,6 +71,11 @@ functions:
             origin: "*" # <-- Specify allowed origin
             headers: "*"
             allowCredentials: false
+          caching:
+            enabled: true
+            ttlInSeconds: 900
+            cacheKeyParameters:
+              - name: request.querystring.interval
   pairs:
     handler: handler.getPairsHandler
     description: returns all the pairs available or specific pair
@@ -163,3 +168,12 @@ resources:
 
 plugins:
   - serverless-offline
+  - serverless-api-gateway-caching
+
+custom:
+  apiGatewayCaching:
+    enabled: true
+    clusterSize: "0.5"
+    ttlInSeconds: 900
+    perKeyInvalidation:
+      requireAuthorization: true
