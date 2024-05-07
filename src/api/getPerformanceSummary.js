@@ -1,9 +1,17 @@
 const { getPGClient } = require("../helper");
+const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
+const { ScanCommand } = require("@aws-sdk/lib-dynamodb");
+const { parse } = require("zipson/lib");
 
 const dotenv = require("dotenv");
 dotenv.config();
 
-const getTickerPerformanceSummary = async (interval = "1D", signer) => {
+const ddbClient = new DynamoDBClient({
+  region: "us-east-1",
+  endpoint: process.env.AWS_ENDPOINT || undefined,
+});
+
+const getPerformanceSummary = async (interval = "1D", signer) => {
   const client = await getPGClient(signer, 2);
   let intervalQuery;
   switch (interval.toUpperCase()) {
@@ -59,18 +67,68 @@ const getTickerPerformanceSummary = async (interval = "1D", signer) => {
       ${intervalQuery}
   `;
 
+  const queryTransactionsCount = `
+  WITH unified_tokens AS (
+        SELECT
+          timestamp,
+          from_token AS ticker
+        FROM transactions
+        WHERE
+          ${intervalQuery}
+        
+        UNION ALL
+      
+        SELECT
+          timestamp,
+          to_token AS ticker
+        FROM transactions
+        WHERE
+          ${intervalQuery}
+      )
+  
+  SELECT
+    ticker,
+    COUNT(*) AS transaction_count
+  FROM unified_tokens
+  GROUP BY ticker
+  ORDER BY ticker;  
+  `;
+
   try {
     const resNonKDA = await client.query(queryNonKDA);
     const resKDA = await client.query(queryKDA);
+    const resTransactionCount = await client.query(queryTransactionsCount);
+
+    const storedTokens = await ddbClient.send(
+      new ScanCommand({
+        TableName: process.env.TOKENS_TABLE,
+      })
+    );
+    const tokensData = parse(storedTokens?.Items[0]?.cachedValue);
+
     const results = {
       tickers: [
-        ...resNonKDA.rows.map((row) => ({
-          ...row,
-          diff: ((row.close - row.open) / row.open) * 100,
-        })),
+        ...resNonKDA.rows.map((row) => {
+          const tokenModuleName = Object.keys(tokensData).find(
+            (key) => tokensData[key].symbol === row.ticker
+          );
+          return {
+            ...row,
+            diff: ((row.close - row.open) / row.open) * 100,
+            transactionCount: Number(
+              resTransactionCount?.rows?.find(
+                (r) => r.ticker === tokenModuleName
+              )?.transaction_count ?? 0
+            ),
+          };
+        }),
         ...resKDA.rows.map((row) => ({
           ...row,
           diff: ((row.close - row.open) / row.open) * 100,
+          transactionCount: Number(
+            resTransactionCount?.rows?.find((r) => r.ticker === "coin")
+              ?.transaction_count ?? 0
+          ),
         })),
       ],
     };
@@ -92,4 +150,4 @@ const getTickerPerformanceSummary = async (interval = "1D", signer) => {
   }
 };
 
-module.exports = getTickerPerformanceSummary;
+module.exports = getPerformanceSummary;
