@@ -61,6 +61,37 @@ const verifyAndAddAccount = async (account, xSignature) => {
   }
 };
 
+const fillMissingDates = (items, getFullData) => {
+  const dateMap = items.reduce((acc, item) => {
+    acc[item.date] = item;
+    return acc;
+  }, {});
+
+  const filledItems = [];
+  let previousItem = null;
+
+  items.forEach((item, index) => {
+    const currentDate = new Date(item.date);
+    if (index > 0) {
+      let previousDate = new Date(items[index - 1].date);
+      previousDate.setDate(previousDate.getDate() + 1);
+      while (previousDate < currentDate) {
+        const dateStr = previousDate.toISOString().split("T")[0];
+        filledItems.push({
+          date: dateStr,
+          totalUsdValue: previousItem.totalUsdValue,
+          data: getFullData ? previousItem.data : undefined,
+        });
+        previousDate.setDate(previousDate.getDate() + 1);
+      }
+    }
+    filledItems.push(item);
+    previousItem = item;
+  });
+
+  return filledItems;
+};
+
 const getAccountBalanceChart = async (queryParams = {}, xSignature) => {
   const { account, from, to, getFullData } = queryParams;
   if (!account || !from || !to) {
@@ -108,9 +139,11 @@ const getAccountBalanceChart = async (queryParams = {}, xSignature) => {
       data: getFullData ? parse(item.balances) : undefined,
     }));
 
+    const filledItems = fillMissingDates(items, getFullData);
+
     return {
       statusCode: 200,
-      body: JSON.stringify(items),
+      body: JSON.stringify(filledItems),
     };
   } catch (error) {
     console.error("Error fetching account balance chart data:", error);
