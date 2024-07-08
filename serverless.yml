@@ -98,6 +98,17 @@ functions:
             origin: "*" # <-- Specify allowed origin
             headers: "*" # <-- Specify
             allowCredentials: false
+  getQuote:
+    handler: handler.getQuoteHandler
+    description: get fiat on ramp quote
+    events:
+      - http:
+          path: /api/fiat-on-ramp/quote
+          method: post
+          cors:
+            origin: "*" # <-- Specify allowed origin
+            headers: "*" # <-- Specify
+            allowCredentials: false
   config:
     handler: handler.getConfigHandler
     description: udf config handler

@@ -97,6 +97,13 @@ const getHistoryHandler = async (event) => {
   return addHeader(result);
 };
 
+const { getQuote } = require("./src/api/fiatOnRamp/index");
+const getQuoteHandler = async (event) => {
+  const bodyParams = JSON.parse(event.body ?? {});
+  const result = await getQuote(bodyParams);
+  return addHeader(result);
+};
+
 module.exports = {
   pairsUpdaterHandler,
   getAccountBalanceChartHandler,
@@ -108,6 +115,7 @@ module.exports = {
   getHistoryHandler,
   getAccountTransactionHistoryHandler,
   getPerformanceSummaryHandler,
+  getQuoteHandler,
 };
 
 // module.exports.hello = async (event) => {
