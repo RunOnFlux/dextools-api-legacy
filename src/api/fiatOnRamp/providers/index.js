@@ -1,4 +1,4 @@
-const { getTopperQuote } = require("./topper");
+const { getQuote, getFiatCurrencyLimits } = require("./topper");
 
 const providers = {
   simplex: {
@@ -6,17 +6,13 @@ const providers = {
       const { account, fiatCurrency, amountToSpend, cryptoToBuy, provider } =
         body;
     },
-    checkout: (body) => {
+    getFiatCurrencyLimits: (body) => {
       const { payment, provider } = body;
     },
-    refresh: (body) => {},
   },
   topper: {
-    getQuote: getTopperQuote,
-    checkout: (body) => {
-      const { payment, provider } = body;
-    },
-    refresh: (body) => {},
+    getQuote,
+    getFiatCurrencyLimits,
   },
 };
 

@@ -109,6 +109,18 @@ functions:
             origin: "*" # <-- Specify allowed origin
             headers: "*" # <-- Specify
             allowCredentials: false
+  getFiatCurrencyLimits:
+    handler: handler.getFiatCurrencyLimitsHandler
+    description: get fiat on ramp currency limits
+    timeout: 200
+    events:
+      - http:
+          path: /api/fiat-on-ramp/currencies
+          method: get
+          cors:
+            origin: "*" # <-- Specify allowed origin
+            headers: "*" # <-- Specify
+            allowCredentials: false
   config:
     handler: handler.getConfigHandler
     description: udf config handler

@@ -1,5 +1,10 @@
 const { providers } = require("./providers");
 
+/**
+ * Get a quote for a specific provider
+ * @param {*} body
+ * @returns {Promise<{statusCode: number, body: string}>}
+ */
 const getQuote = async (body) => {
   const { account, fiatCurrency, amountToSpend, cryptoToBuy, provider } = body;
   if (!account || !fiatCurrency || !amountToSpend || !provider) {
@@ -19,10 +24,11 @@ const getQuote = async (body) => {
       }),
     };
   }
-  const result = await providers.topper.getQuote({
+  const result = await providers[provider].getQuote({
     account,
     fiatCurrency,
     amountToSpend,
+    cryptoToBuy,
   });
   if (result.error) {
     return {
@@ -35,15 +41,41 @@ const getQuote = async (body) => {
   return {
     statusCode: 200,
     body: JSON.stringify({
-      account,
-      fiatCurrency,
-      fiatBaseAmount: result.data.simulation.origin.amount,
-      cryptoCurrency: cryptoToBuy,
-      cryptoAmount: result.data.simulation.destination.amount,
-      bootstrapToken: result.bootstrapToken,
-      checkoutUrl: result.checkoutUrl,
+      ...result,
     }),
   };
 };
 
-module.exports = { getQuote };
+/**
+ * Get currency list and limits for a specific provider
+ * @param {*} queryParams
+ * @returns {Promise<{statusCode: number, body: string}>}
+ */
+const getFiatCurrencyLimits = async (queryParams = {}) => {
+  const { provider } = queryParams;
+  if (!providers[provider]) {
+    return {
+      statusCode: 400,
+      body: JSON.stringify({
+        error: "Invalid provider",
+      }),
+    };
+  }
+  const result = await providers[provider].getFiatCurrencyLimits();
+  if (result.error) {
+    return {
+      statusCode: 400,
+      body: JSON.stringify({
+        error: result.error ?? "Failed to get fiat currency limits",
+      }),
+    };
+  }
+  return {
+    statusCode: 200,
+    body: JSON.stringify({
+      ...result,
+    }),
+  };
+};
+
+module.exports = { getQuote, getFiatCurrencyLimits };
