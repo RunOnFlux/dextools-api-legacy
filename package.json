@@ -16,6 +16,7 @@
     "@kadena/cryptography-utils": "^0.4.2",
     "axios": "^1.2.2",
     "dotenv": "^16.0.3",
+    "jsonwebtoken": "^9.0.2",
     "luxon": "^3.2.1",
     "node-fetch": "^3.3.0",
     "pg": "^8.8.0",
